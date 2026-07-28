@@ -329,7 +329,10 @@ function render() {
   chipsBlock('fDepth', depths, state.d===null?null:state.d, fmt, v => { state.d = v===null?null:parseFloat(v); render(); });
   chipsBlock('fWidth', widths, state.w===null?null:state.w, fmt, v => { state.w = v===null?null:parseFloat(v); render(); });
   chipsBlock('fCorr', corrs, state.c, null, v => { state.c = v; render(); });
-  chipsBlock('fEnd', ends.length>1?['+1.5']:[], state.eb===1.5?'+1.5':null, null, v => { state.eb = v===null?null:1.5; render(); });
+  const endOpts = [];
+  if (ends.includes(0)) endOpts.push('±0');
+  if (ends.includes(1.5)) endOpts.push('+1.5');
+  chipsBlock('fEnd', endOpts, state.eb === 0 ? '±0' : state.eb === 1.5 ? '+1.5' : null, null, v => { state.eb = v === null ? null : (v === '±0' ? 0 : 1.5); render(); });
   chipsBlock('fVar', vars, state.v, v => '_'+v, v => { state.v = v; render(); });
 
   // Result
