@@ -142,6 +142,50 @@
     h1{font-size:16px}
     .modal .modalgrid{grid-template-columns:1fr}
   }
+
+  .aptimg { position: relative; }
+  .aptCmp { position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:50%;
+    border:1.5px solid var(--line); background:rgba(255,255,255,.92); cursor:pointer; z-index:2;
+    display:flex; align-items:center; justify-content:center; padding:0; color:var(--muted); transition:.12s; }
+  .aptCmp:hover { border-color:var(--accent); color:var(--accent); }
+  .aptCmp.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .aptCmp svg { width:16px; height:16px; }
+  .cmpFab { position:fixed; bottom:22px; right:22px; z-index:40; background:var(--accent); color:#fff;
+    border:0; border-radius:999px; padding:12px 22px; font-size:14px; font-weight:600;
+    box-shadow:0 4px 16px rgba(47,109,246,.4); cursor:pointer; display:none; align-items:center; gap:8px;
+    font-family:inherit; }
+  .cmpFab.visible { display:inline-flex; }
+  .cmpFab .cnt { background:rgba(255,255,255,.25); padding:2px 9px; border-radius:10px; font-size:13px; }
+  .cmpModal { position:fixed; inset:0; background:rgba(15,17,22,.85); display:none;
+    align-items:flex-start; justify-content:center; z-index:70; padding:20px; overflow-y:auto; }
+  .cmpModal.open { display:flex; }
+  .cmpBox { background:#fff; border-radius:12px; max-width:1400px; width:100%;
+    padding:22px; position:relative; margin:auto; }
+  .cmpBox h2 { font-size:20px; font-weight:600; margin-bottom:4px; }
+  .cmpBox .sub { font-size:13px; color:var(--muted); }
+  .cmpTools { display:flex; gap:8px; margin:14px 0; flex-wrap:wrap; }
+  .cmpTools button { border:1px solid var(--line); background:#fff; border-radius:8px;
+    padding:7px 14px; font-size:13px; cursor:pointer; font-family:inherit; }
+  .cmpTools .prim { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .cmpGrid { display:grid; gap:14px; margin-top:8px; }
+  .cmpCol { background:#fafbfc; border:1px solid var(--line); border-radius:12px;
+    padding:14px; display:flex; flex-direction:column; gap:10px; position:relative; }
+  .cmpRm { position:absolute; top:8px; right:8px; background:rgba(255,255,255,.9);
+    border:1px solid var(--line); border-radius:50%; width:26px; height:26px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; color:var(--muted); padding:0; }
+  .cmpRm:hover { color:#bd3b34; border-color:#bd3b34; }
+  .cmpCol h3 { font-size:13px; font-weight:600; word-break:break-word; padding-right:32px; }
+  .cmpCol img { width:100%; height:220px; object-fit:contain; background:#f0f1f4; border-radius:8px; }
+  .cmpArea { background:var(--accent-soft); color:#1a4bb8; padding:6px 12px; border-radius:8px;
+    font-weight:700; font-size:18px; width:fit-content; display:inline-flex; align-items:baseline; gap:4px; }
+  .cmpArea span { font-size:11px; }
+  .cmpParams { font-size:13px; }
+  .cmpParams .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:6px 0; border-bottom:1px solid var(--line); }
+  .cmpParams .row:last-child { border-bottom:0; }
+  .cmpParams .k { color:var(--muted); font-size:12px; }
+  .cmpParams .v { font-weight:500; text-align:right; }
+  .cmpEmpty { text-align:center; padding:60px 20px; color:var(--muted); }
+
 </style>
 </head>
 <body>
@@ -288,6 +332,7 @@ function readURL() {
   if (p.get('aMin')) s.aMin = parseFloat(p.get('aMin'));
   if (p.get('aMax')) s.aMax = parseFloat(p.get('aMax'));
   if (p.get('view')) s.view = p.get('view');
+  if (p.get('compare')) s.compare = p.get('compare').split(',').filter(Boolean);
   return s;
 }
 function writeURL() {
@@ -301,6 +346,7 @@ function writeURL() {
   if (state.aMin > A_MIN) p.set('aMin', state.aMin);
   if (state.aMax < A_MAX) p.set('aMax', state.aMax);
   if (state.view !== 'c3') p.set('view', state.view);
+  if (state.compare && state.compare.length > 0) p.set('compare', state.compare.join(','));
   const qs = p.toString();
   const url = location.pathname + (qs ? '?' + qs : '');
   history.replaceState(null, '', url);
@@ -317,7 +363,7 @@ function shareApt(a) {
   return location.origin + location.pathname + '?' + p.toString();
 }
 
-const state = { type: null, d: null, w: null, c: null, eb: null, v: null, aMin: 0, aMax: 100, view: 'c3', mode: 'view' };
+const state = { type: null, d: null, w: null, c: null, eb: null, v: null, aMin: 0, aMax: 100, view: 'c3', mode: 'view', compare: [] };
 // === Синхронизация меток через npoint.io ===
 const BIN_URL = 'https://api.npoint.io/4454495a56840c7100fd';
 const STORAGE_KEY = 'apt-catalog-meta-v1';
@@ -428,6 +474,76 @@ function chipsBlock(id, values, current, formatter, setter) {
   box.querySelectorAll('.chip').forEach(c => c.onclick = () => setter(c.dataset.val === '__all__' ? null : c.dataset.val));
 }
 
+
+// === Сравнение планировок ===
+function toggleCompare(name, ev) {
+  if (ev) ev.stopPropagation();
+  const idx = state.compare.indexOf(name);
+  if (idx >= 0) {
+    state.compare.splice(idx, 1);
+  } else {
+    if (state.compare.length >= 4) { alert('Максимум 4 планировки'); return; }
+    state.compare.push(name);
+  }
+  updateCmpFab(); writeURL(); render();
+}
+function updateCmpFab() {
+  const fab = document.getElementById('cmpFab');
+  const n = state.compare.length;
+  if (n > 0) { fab.classList.add('visible'); fab.querySelector('.cnt').textContent = n; }
+  else fab.classList.remove('visible');
+}
+function openCompare() {
+  const modal = document.getElementById('cmpModal');
+  const grid = document.getElementById('cmpGrid');
+  const sub = document.getElementById('cmpSub');
+  const cards = state.compare.map(n => APTS.find(a => a.n === n)).filter(Boolean);
+  sub.textContent = cards.length + ' из 4 · клик по значку в углу карточки чтобы добавить/убрать';
+  if (cards.length === 0) {
+    grid.innerHTML = '<div class="cmpEmpty">Ничего не выбрано.<br>Кликни на значок ⊕ в правом верхнем углу карточки.</div>';
+  } else {
+    grid.style.gridTemplateColumns = 'repeat(' + cards.length + ', minmax(0, 1fr))';
+    grid.innerHTML = cards.map(function(a) { return '<div class="cmpCol">' +
+      '<button class="cmpRm" data-n="' + escHtml(a.n) + '" title="Убрать">' +
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
+      '</button>' +
+      '<h3>' + escHtml(a.n) + '</h3>' +
+      '<img src="' + escHtml(imgPath(a.n)) + '" onerror="this.style.display=\'none\'">' +
+      '<div class="cmpArea">' + fmt(a.a) + '<span>м²</span></div>' +
+      '<div class="cmpParams">' +
+        '<div class="row"><span class="k">Типология</span><span class="v">' + a.t + '</span></div>' +
+        '<div class="row"><span class="k">Глубина</span><span class="v">' + fmt(a.d) + (a.eb ? ' +' + fmt(a.eb) : '') + ' м</span></div>' +
+        '<div class="row"><span class="k">Ширина</span><span class="v">' + fmt(a.w) + ' м</span></div>' +
+        '<div class="row"><span class="k">Коридор</span><span class="v">' + (a.c || '±0') + '</span></div>' +
+        '<div class="row"><span class="k">Вариант</span><span class="v">' + (a.v ? '_' + a.v : '—') + '</span></div>' +
+      '</div>' +
+    '</div>'; }).join('');
+    grid.querySelectorAll('.cmpRm').forEach(function(b) {
+      b.onclick = function() {
+        const i = state.compare.indexOf(b.dataset.n);
+        if (i >= 0) state.compare.splice(i, 1);
+        updateCmpFab(); writeURL(); render(); openCompare();
+      };
+    });
+  }
+  modal.classList.add('open');
+}
+function clearCompare() {
+  state.compare = [];
+  updateCmpFab(); writeURL(); render();
+  document.getElementById('cmpModal').classList.remove('open');
+}
+async function shareCompare() {
+  if (state.compare.length === 0) return;
+  const p = new URLSearchParams();
+  p.set('compare', state.compare.join(','));
+  const url = location.origin + location.pathname + '?' + p.toString();
+  try {
+    await navigator.clipboard.writeText(url);
+    alert('Ссылка скопирована!');
+  } catch(e) { prompt('Скопируйте ссылку:', url); }
+}
+
 function render() {
   // Типология всегда фиксирована
   const types = ['1С','1К/2С','3С','4С'];
@@ -517,6 +633,9 @@ function render() {
 
       return '<div class="apt" data-idx="' + APTS.indexOf(a) + '">' +
         '<div class="aptimg">' +
+          '<button class="aptCmp ' + (state.compare.indexOf(a.n) >= 0 ? 'on' : '') + '" data-cmp="' + escHtml(a.n) + '" title="Сравнить">' +
+            (state.compare.indexOf(a.n) >= 0 ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>') +
+          '</button>' +
           '<img src="' + escHtml(imgPath(a.n)) + '" alt="' + escHtml(a.n) + '" ' +
           'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
           '<div class="noimg" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21V7l9-4 9 4v14"/><path d="M9 21V12h6v9"/></svg><div>план ' + escHtml(a.n) + '</div></div>' +
@@ -535,8 +654,12 @@ function render() {
       el.onclick = (ev) => {
         if (ev.target.closest('.adminbox')) return;
         if (ev.target.closest('.altBtn')) return;
+        if (ev.target.closest('.aptCmp')) return;
         showModal(APTS[el.dataset.idx]);
       };
+    });
+    grid.querySelectorAll('.aptCmp').forEach(btn => {
+      btn.onclick = (ev) => toggleCompare(btn.dataset.cmp, ev);
     });
     grid.querySelectorAll('.altBtn').forEach(btn => {
       btn.onclick = (ev) => {
@@ -681,6 +804,28 @@ if (openParam) {
   const found = APTS.find(a => a.n === openParam);
   if (found) setTimeout(() => showModal(found), 300);
 }
+updateCmpFab();
+if (state.compare && state.compare.length > 0) setTimeout(() => openCompare(), 400);
 </script>
+
+<button class="cmpFab" id="cmpFab" onclick="openCompare()">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+  Сравнить <span class="cnt">0</span>
+</button>
+<div class="cmpModal" id="cmpModal" onclick="if(event.target===this) this.classList.remove('open')">
+  <div class="cmpBox">
+    <button style="position:absolute;top:14px;right:14px;background:none;border:0;color:var(--muted);cursor:pointer;padding:4px" onclick="document.getElementById('cmpModal').classList.remove('open')">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+    <h2>Сравнение планировок</h2>
+    <div class="sub" id="cmpSub"></div>
+    <div class="cmpTools">
+      <button class="prim" onclick="shareCompare()">Скопировать ссылку сравнения</button>
+      <button onclick="clearCompare()">Очистить</button>
+    </div>
+    <div class="cmpGrid" id="cmpGrid"></div>
+  </div>
+</div>
+
 </body>
 </html>
