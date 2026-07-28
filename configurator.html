@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Конфигуратор этажа · META</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#1c1d21;--muted:#6b6f76;--line:#e3e5e9;
+  --accent:#2f6df6;--accent-soft:#eaf1ff;--radius:12px;
+  --shadow:0 1px 3px rgba(20,22,28,.06),0 4px 16px rgba(20,22,28,.04);
+  --err:#bd3b34;--errsoft:#fbe6e5;--ok:#1d7d52;--oksoft:#e3f5ec;
+  --mop:#8b5cf6;--mopsoft:#f5e6ff;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45}
+.wrap{max-width:1600px;margin:0 auto;padding:14px}
+
+header{display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+.logo{background:var(--accent);padding:8px 16px;border-radius:10px;color:#fff;font-weight:900;letter-spacing:1.5px}
+h1{font-size:18px;font-weight:600}
+.subt{font-size:12px;color:var(--muted);margin-top:2px}
+.headerright{margin-left:auto;display:flex;gap:8px}
+.headerright a{background:var(--card);border:1px solid var(--line);border-radius:8px;
+  padding:8px 14px;font-size:13px;color:var(--ink);text-decoration:none;box-shadow:var(--shadow)}
+
+.step{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px 20px;margin-bottom:14px;box-shadow:var(--shadow)}
+.step h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;margin-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 16px;
+  font-size:13px;cursor:pointer;user-select:none;font-family:inherit}
+.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip .cnt{background:rgba(255,255,255,.2);padding:1px 7px;border-radius:10px;font-size:11px;margin-left:5px}
+.chip:not(.on) .cnt{background:var(--line);color:var(--muted)}
+
+.mopchoice{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:6px}
+.mopcard{border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;background:#fff;transition:.12s}
+.mopcard:hover{border-color:var(--mop)}
+.mopcard.on{background:var(--mopsoft);border-color:var(--mop)}
+.mopcard .n{font-weight:600;font-size:13px;margin-bottom:4px}
+.mopcard .s{font-size:12px;color:var(--muted)}
+
+.layout{display:grid;grid-template-columns:minmax(280px,1fr) 340px;gap:14px;align-items:start}
+@media(max-width:1000px){.layout{grid-template-columns:1fr}}
+
+.floor{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:20px;box-shadow:var(--shadow);min-height:400px}
+.floor h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;margin-bottom:14px}
+.corridor{margin-bottom:22px}
+.corridor-name{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;font-weight:600}
+.slots{display:flex;gap:6px;flex-wrap:wrap;align-items:stretch;min-height:110px;background:#fafbfc;
+  border:1.5px dashed var(--line);border-radius:10px;padding:10px;position:relative}
+.slots.empty::before{content:"Пусто — кликните + чтобы добавить";position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);color:var(--muted);font-size:12px;font-style:italic}
+
+.aptCard{background:#fff;border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;
+  min-width:110px;display:flex;flex-direction:column;gap:4px;position:relative;cursor:pointer;transition:.12s}
+.aptCard:hover{border-color:var(--accent)}
+.aptCard.torc{border-color:var(--mop);background:var(--mopsoft)}
+.aptCard.conflict{border-color:var(--err);background:var(--errsoft)}
+.aptCard.linked{border-style:dashed}
+.aptCard .n{font-size:11px;font-weight:600;line-height:1.2;word-break:break-word}
+.aptCard .a{font-size:14px;font-weight:700;color:var(--accent)}
+.aptCard .w{font-size:10px;color:var(--muted)}
+.aptCard .rm{position:absolute;top:-6px;right:-6px;background:var(--err);color:#fff;border:2px solid #fff;
+  border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;line-height:1;padding:0;opacity:0;transition:.12s}
+.aptCard:hover .rm{opacity:1}
+.aptCard .badges{display:flex;gap:3px;flex-wrap:wrap;font-size:9px}
+.aptCard .badge{background:var(--line);color:var(--muted);padding:1px 5px;border-radius:4px;font-weight:600}
+.aptCard .badge.pos{background:var(--oksoft);color:var(--ok)}
+.aptCard .badge.neg{background:#fef1dd;color:#b9791a}
+.aptCard .badge.torc{background:var(--mopsoft);color:var(--mop)}
+
+.addBtn{background:#fff;border:1.5px dashed var(--line);border-radius:8px;min-width:80px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);
+  font-family:inherit;font-size:24px;padding:8px;transition:.12s}
+.addBtn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
+.mopSlot{background:var(--mop);color:#fff;border-radius:8px;padding:14px 18px;text-align:center;
+  min-width:140px;display:flex;flex-direction:column;justify-content:center}
+.mopSlot .n{font-size:12px;font-weight:600;opacity:.85}
+.mopSlot .s{font-size:15px;font-weight:700;margin-top:4px}
+
+.tep{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px;box-shadow:var(--shadow);position:sticky;top:14px}
+.tep h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;margin-bottom:14px}
+.tep .row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.tep .row:last-child{border-bottom:0}
+.tep .row .k{color:var(--muted)}
+.tep .row .v{font-weight:600}
+.tep .row .v.hl{color:var(--accent);font-size:15px}
+.tep h4{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);
+  font-weight:600;margin:14px 0 6px}
+.tep .warn{background:var(--errsoft);color:var(--err);padding:8px 12px;border-radius:8px;font-size:12px;margin-top:12px}
+.tep .warn.hidden{display:none}
+
+.picker{position:fixed;inset:0;background:rgba(15,17,22,.85);display:none;
+  align-items:center;justify-content:center;z-index:60;padding:16px}
+.picker.open{display:flex}
+.picker .box{background:#fff;border-radius:12px;max-width:800px;width:100%;
+  padding:20px;max-height:85vh;display:flex;flex-direction:column}
+.picker .box h2{font-size:18px;font-weight:600;margin-bottom:6px}
+.picker .box .sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.picker .list{overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;flex:1}
+.picker .item{border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;transition:.12s;background:#fff}
+.picker .item:hover{border-color:var(--accent);background:var(--accent-soft)}
+.picker .item .n{font-size:13px;font-weight:600;margin-bottom:2px;word-break:break-word}
+.picker .item .a{font-size:12px;color:var(--accent);font-weight:600}
+.picker .item .w{font-size:11px;color:var(--muted)}
+.picker .close{position:absolute;top:14px;right:14px;background:none;border:0;color:var(--muted);cursor:pointer}
+.picker .box{position:relative}
+.picker .filter{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.picker .filter .chip{font-size:11px;padding:5px 10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="logo">META</div>
+  <div>
+    <h1>Конфигуратор этажа</h1>
+    <div class="subt">Сборка типового этажа из МОП и квартир · автоподсчёт ТЭП</div>
+  </div>
+  <div class="headerright">
+    <a href="./">Каталог квартир</a>
+  </div>
+</header>
+
+<div class="step">
+  <h3>1. Тип этажа</h3>
+  <div class="chips" id="floorType"></div>
+</div>
+
+<div class="step" id="stepMop" style="display:none">
+  <h3>2. Выбор МОП</h3>
+  <div class="mopchoice" id="mopList"></div>
+</div>
+
+<div class="layout" id="mainArea" style="display:none">
+  <div class="floor">
+    <h3 id="floorTitle">3. Заполните квартирами</h3>
+    <div id="corridors"></div>
+  </div>
+
+  <div class="tep">
+    <h3>ТЭП</h3>
+    <div id="tepBody">
+      <div class="row"><span class="k">Квартир</span><span class="v" id="tepCount">0</span></div>
+      <div class="row"><span class="k">Ширина фасада</span><span class="v" id="tepWidth">— м</span></div>
+      <div class="row"><span class="k">Площадь квартир</span><span class="v hl" id="tepAptArea">0.0 м²</span></div>
+      <div class="row"><span class="k">Средняя квартира</span><span class="v" id="tepAvgArea">— м²</span></div>
+      <h4>По типам</h4>
+      <div id="tepByType"></div>
+      <h4>Стыковки</h4>
+      <div class="row"><span class="k">Готовых пар</span><span class="v" id="tepPairs">0</span></div>
+      <div class="row"><span class="k">Ждут пары</span><span class="v" id="tepUnpaired">0</span></div>
+      <div class="warn hidden" id="tepWarn"></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="picker" id="picker" onclick="if(event.target===this) this.classList.remove('open')">
+  <div class="box">
+    <button class="close" onclick="document.getElementById('picker').classList.remove('open')">✕</button>
+    <h2>Выберите квартиру</h2>
+    <div class="sub" id="pickerSub"></div>
+    <div class="filter" id="pickerFilter"></div>
+    <div class="list" id="pickerList"></div>
+  </div>
+</div>
+
+<script>
+const APTS = [{"n":"1С_7.0-3.6","t":"1С","dx":3.6,"dy":7,"flags":"","a":20.2,"key":"1С_7.0х3.6"},{"n":"1С_7.0-3.8","t":"1С","dx":3.8,"dy":7,"flags":"","a":21.5,"key":"1С_7.0х3.8"},{"n":"1С_7.5-3.6","t":"1С","dx":3.6,"dy":7.5,"flags":"","a":21.8,"key":"1С_7.5х3.6"},{"n":"1С_7.7-3.6","t":"1С","dx":3.6,"dy":7.7,"flags":"","a":22.5,"key":"1С_7.7х3.6"},{"n":"1С_7.0-4.0","t":"1С","dx":4,"dy":7,"flags":"","a":22.7,"key":"1С_7.0х4.0"},{"n":"1С_6.5-4.0","t":"1С","dx":4,"dy":6.5,"flags":"","a":20.5,"key":"1С_6.5х4.0"},{"n":"1С_6.5-4.2","t":"1С","dx":4.2,"dy":6.5,"flags":"","a":21.7,"key":"1С_6.5х4.2"},{"n":"1С_7.0-4.2","t":"1С","dx":4.2,"dy":7,"flags":"","a":24.1,"key":"1С_7.0х4.2"},{"n":"1С_7.5-4.2","t":"1С","dx":4.2,"dy":7.5,"flags":"","a":26.0,"key":"1С_7.5х4.2"},{"n":"1С_7.5-4.0","t":"1С","dx":4,"dy":7.5,"flags":"","a":24.6,"key":"1С_7.5х4.0"},{"n":"1С_7.7-4.0","t":"1С","dx":4,"dy":7.7,"flags":"","a":25.4,"key":"1С_7.7х4.0"},{"n":"1С_7.7-4.2","t":"1С","dx":4.2,"dy":7.7,"flags":"","a":26.8,"key":"1С_7.7х4.2"},{"n":"1С_7.7-3.8","t":"1С","dx":3.8,"dy":7.7,"flags":"","a":23.9,"key":"1С_7.7х3.8"},{"n":"1С_7.5-3.8","t":"1С","dx":3.8,"dy":7.5,"flags":"","a":23.2,"key":"1С_7.5х3.8"},{"n":"1С_7.7-3.3 (+2.7)","t":"1С","dx":6,"dy":7.7,"flags":"Пара 2.7 +","a":26.9,"key":"1С_7.7х3.3 (+2.7)"},{"n":"1С_7.5-3.3 (+2.7)","t":"1С","dx":6,"dy":7.5,"flags":"Пара 2.7 +","a":26.3,"key":"1С_7.5х3.3 (+2.7)"},{"n":"1С_7.0-3.3 (+2.7)","t":"1С","dx":6,"dy":7,"flags":"Пара 2.7 +","a":24.8,"key":"1С_7.0х3.3 (+2.7)"},{"n":"1С_6.5-3.3 (+2.7)","t":"1С","dx":6,"dy":6.5,"flags":"Пара 2.7 +","a":23.3,"key":"1С_6.5х3.3 (+2.7)"},{"n":"1С_7.0-3.6 (+2.7)","t":"1С","dx":6.3,"dy":7,"flags":"Пара 2.7 +","a":26.7,"key":"1С_7.0х3.6 (+2.7)"},{"n":"1С_7.5-3.6 (+2.7)","t":"1С","dx":6.3,"dy":7.5,"flags":"Пара 2.7 +","a":28.4,"key":"1С_7.5х3.6 (+2.7)"},{"n":"1С_6.5-3.8","t":"1С","dx":3.8,"dy":6.5,"flags":"","a":19.4,"key":"1С_6.5х3.8"},{"n":"1К/2С_7.7-6.5 (-2.7)","t":"1К/2С","dx":6.5,"dy":7.7,"flags":"Пара 2.7 -","a":35.8,"key":"1К/2С_7.7х6.5 (х2.7)"},{"n":"1К/2С_7.7-6.9 (-2.7)","t":"1К/2С","dx":6.9,"dy":7.7,"flags":"Пара 2.7 -","a":38.7,"key":"1К/2С_7.7х6.9 (х2.7)"},{"n":"1К/2С_7.5-6.9 (-2.7)","t":"1К/2С","dx":6.9,"dy":7.5,"flags":"Пара 2.7 -","a":37.4,"key":"1К/2С_7.5х6.9 (х2.7)"},{"n":"1К/2С_7.0-6.9 (-2.7)","t":"1К/2С","dx":6.9,"dy":7,"flags":"Пара 2.7 -","a":34.1,"key":"1К/2С_7.0х6.9 (х2.7)"},{"n":"1К/2С_6.5-6.9 (-2.7)","t":"1К/2С","dx":6.9,"dy":6.5,"flags":"Пара 2.7 -","a":30.8,"key":"1К/2С_6.5х6.9 (х2.7)"},{"n":"1К/2С_6.5-6.0 _1","t":"1К/2С","dx":6,"dy":6.5,"flags":"","a":32.6,"key":"1К/2С_6.5х6.0_1"},{"n":"1К/2С_7.0-6.0 _1","t":"1К/2С","dx":6,"dy":7,"flags":"","a":35.1,"key":"1К/2С_7.0х6.0_1"},{"n":"1К/2С_6.5-6.0 _3","t":"1К/2С","dx":6,"dy":6.5,"flags":"","a":32.2,"key":"1К/2С_6.5х6.0_3"},{"n":"1К/2С_6.5-6.3 _1","t":"1К/2С","dx":6.3,"dy":6.5,"flags":"","a":34.1,"key":"1К/2С_6.5х6.3_1"},{"n":"1К/2С_6.5-6.9 _1","t":"1К/2С","dx":6.9,"dy":6.5,"flags":"","a":0,"key":"1К/2С_6.5х6.9_1"},{"n":"1К/2С_7.0-6.0 _3","t":"1К/2С","dx":6,"dy":7,"flags":"","a":34.9,"key":"1К/2С_7.0х6.0_3"},{"n":"1К/2С_7.0-6.3 _1","t":"1К/2С","dx":6.29,"dy":7,"flags":"","a":37.1,"key":"1К/2С_7.0х6.3_1"},{"n":"1К/2С_7.0-6.9 _1","t":"1К/2С","dx":6.9,"dy":7,"flags":"","a":0,"key":"1К/2С_7.0х6.9_1"},{"n":"1К/2С_7.5-6.0 _3","t":"1К/2С","dx":6,"dy":7.5,"flags":"","a":37.6,"key":"1К/2С_7.5х6.0_3"},{"n":"1К/2С_7.5-6.3 _1","t":"1К/2С","dx":6.29,"dy":7.5,"flags":"","a":40.0,"key":"1К/2С_7.5х6.3_1"},{"n":"1К/2С_7.7-6.0 _3","t":"1К/2С","dx":6,"dy":7.7,"flags":"","a":38.7,"key":"1К/2С_7.7х6.0_3"},{"n":"1К/2С_7.7-6.3 _1","t":"1К/2С","dx":6.29,"dy":7.7,"flags":"","a":41.0,"key":"1К/2С_7.7х6.3_1"},{"n":"1К/2С_7.5-6.0 _2","t":"1К/2С","dx":6,"dy":7.5,"flags":"","a":37.9,"key":"1К/2С_7.5х6.0_2"},{"n":"1К/2С_7.7-6.0  _1","t":"1К/2С","dx":6,"dy":7.7,"flags":"","a":0,"key":"1К/2С_7.7х6.0 _1"},{"n":"3С_7.0+1.5-9.0","t":"3С","dx":8.98,"dy":8.5,"flags":"Пара 2.7 +|Торец 1.5 +","a":0,"key":"3С_7.0+1.5х9.0"},{"n":"3С_7.7-9.4","t":"3С","dx":9.4,"dy":7.7,"flags":"","a":61.8,"key":"3С_7.7х9.4"},{"n":"3С_7.0+1.5-8.3","t":"3С","dx":8.43,"dy":8.5,"flags":"Торец 1.5 +","a":0,"key":"3С_7.0+1.5х8.3"},{"n":"3С_7.5+1.5-8.3","t":"3С","dx":8.3,"dy":9,"flags":"Торец 1.5 +","a":60.6,"key":"3С_7.5+1.5х8.3"},{"n":"3С_7.7+1.5-8.3","t":"3С","dx":8.3,"dy":9.2,"flags":"Торец 1.5 +","a":62.2,"key":"3С_7.7+1.5х8.3"},{"n":"3С_7.5-9.4","t":"3С","dx":9.4,"dy":7.5,"flags":"","a":60.1,"key":"3С_7.5х9.4"},{"n":"3С_7.0-9.4","t":"3С","dx":9.4,"dy":7,"flags":"","a":55.6,"key":"3С_7.0х9.4"},{"n":"3С_6.5-9.4","t":"3С","dx":9.4,"dy":6.5,"flags":"","a":51.1,"key":"3С_6.5х9.4"},{"n":"3С_7.7-9.0","t":"3С","dx":9,"dy":7.7,"flags":"","a":58.6,"key":"3С_7.7х9.0"},{"n":"3С_7.5-9.0","t":"3С","dx":9,"dy":7.5,"flags":"","a":56.8,"key":"3С_7.5х9.0"},{"n":"3С_7.0-9.0","t":"3С","dx":9,"dy":7,"flags":"","a":52.6,"key":"3С_7.0х9.0"},{"n":"3С_6.5+1.5-9.6","t":"3С","dx":9.5,"dy":7.87,"flags":"Торец 1.5 +","a":62.9,"key":"3С_6.5+1.5х9.6"},{"n":"3С_7.0+1.5-9.6","t":"3С","dx":9.5,"dy":8.5,"flags":"Торец 1.5 +","a":67.7,"key":"3С_7.0+1.5х9.6"},{"n":"3С_7.5+1.5-9.6","t":"3С","dx":9.5,"dy":9,"flags":"Торец 1.5 +","a":0,"key":"3С_7.5+1.5х9.6"},{"n":"4С_7.7+1.5-9.6","t":"3С","dx":9.5,"dy":9.2,"flags":"Торец 1.5 +","a":73.5,"key":"4С_7.7+1.5х9.6"},{"n":"3С_7.5+1.5-6.3 (+2.7)","t":"3С","dx":9.1,"dy":8.87,"flags":"Пара 2.7 +|Торец 1.5 +","a":53.4,"key":"3С_7.5+1.5х6.3 (+2.7)"},{"n":"3С_7.7+1.5-6.3 (+2.7)","t":"3С","dx":9.1,"dy":9.21,"flags":"Пара 2.7 +|Торец 1.5 +","a":54.6,"key":"3С_7.7+1.5х6.3 (+2.7)"},{"n":"3С_6.5+1.5-6.3 (+2.7)","t":"3С","dx":9.13,"dy":8,"flags":"Пара 2.7 +|Торец 1.5 +","a":50.6,"key":"3С_6.5+1.5х6.3 (+2.7)"},{"n":"3С_7.0-8.8 (-2.7)","t":"3С","dx":8.85,"dy":7,"flags":"Пара 2.7 -","a":46.1,"key":"3С_7.0х8.8 (х2.7)"},{"n":"3С_6.5-8.8 (-2.7)","t":"3С","dx":8.85,"dy":6.5,"flags":"Пара 2.7 -","a":41.9,"key":"3С_6.5х8.8 (х2.7)"},{"n":"3С_7.5-8.8 (-2.7)","t":"3С","dx":8.85,"dy":7.5,"flags":"Пара 2.7 -","a":50.3,"key":"3С_7.5х8.8 (х2.7)"},{"n":"3С_7.7-8.8 (-2.7)","t":"3С","dx":8.85,"dy":7.7,"flags":"Пара 2.7 -","a":52.0,"key":"3С_7.7х8.8 (х2.7)"},{"n":"1С_7.7-5.4","t":"1С","dx":5.4,"dy":7.7,"flags":"","a":0,"key":"1С_7.7х5.4"},{"n":"1С_6.5-3.6","t":"1С","dx":3.6,"dy":6.5,"flags":"","a":18.5,"key":"1С_6.5х3.6"},{"n":"3С_7.5-6.3 (+2.7)","t":"3С","dx":9,"dy":7.5,"flags":"Пара 2.7 +|Торец","a":46.2,"key":"3С_7.5х6.3 (+2.7)"},{"n":"1С_3.5-9.9","t":"1С","dx":9.86,"dy":3.72,"flags":"","a":24.3,"key":"1С_3.5х9.9"},{"n":"1С_6.5-3.6 (+2.7)","t":"1С","dx":6.3,"dy":6.5,"flags":"Пара 2.7 +","a":25.1,"key":"1С_6.5х3.6 (+2.7)"},{"n":"3С_7.0-6.3 (+2.7)","t":"3С","dx":9,"dy":7,"flags":"Пара 2.7 +|Торец","a":43.2,"key":"3С_7.0х6.3 (+2.7)"},{"n":"1К/2С_7.0-6.3 _2","t":"1К/2С","dx":6.3,"dy":7,"flags":"","a":36.3,"key":"1К/2С_7.0х6.3_2"},{"n":"1К/2С_7.5-6.3 _2","t":"1К/2С","dx":6.3,"dy":7.5,"flags":"","a":39.2,"key":"1К/2С_7.5х6.3_2"},{"n":"1К/2С_7.7-6.3 _2","t":"1К/2С","dx":6.3,"dy":7.7,"flags":"","a":40.6,"key":"1К/2С_7.7х6.3_2"},{"n":"4С-7.7+1.5+4.25-6.7_1","t":"4С","dx":10.05,"dy":12.59,"flags":"Торец Н","a":0,"key":"4Сх7.7+1.5+4.25х6.7_1"},{"n":"4С- (Н-тип)_2","t":"4С","dx":10.58,"dy":10.55,"flags":"Пара 2.7 +|Торец Н","a":0,"key":"4Сх (Нхтип)_2"},{"n":"4С-7.7+1.5+4.25-6.7_2","t":"4С","dx":10.05,"dy":12.59,"flags":"Торец Н","a":0,"key":"4Сх7.7+1.5+4.25х6.7_2"},{"n":"1К/2С_5.7-10.6","t":"1К/2С","dx":10.57,"dy":5.69,"flags":"Торец Н","a":43.3,"key":"1К/2С_5.7х10.6"},{"n":"1К/2С_7.5-6.0 _1","t":"1К/2С","dx":6,"dy":7.5,"flags":"","a":37.9,"key":"1К/2С_7.5х6.0_1"},{"n":"1К/2С_7.7-6.0 _2","t":"1К/2С","dx":6,"dy":7.7,"flags":"","a":39.0,"key":"1К/2С_7.7х6.0_2"},{"n":"1С_3.5-10.3","t":"1С","dx":10.28,"dy":3.59,"flags":"","a":0,"key":"1С_3.5х10.3"},{"n":"3С_7.7-6.3 (+2.7)","t":"3С","dx":9,"dy":7.7,"flags":"Пара 2.7 +|Торец","a":47.4,"key":"3С_7.7х6.3 (+2.7)"},{"n":"1К/2С_7.5-6.1 (-2.3)","t":"1К/2С","dx":6.08,"dy":7.5,"flags":"Пара 2.3 -","a":0,"key":"1К/2С_7.5х6.1 (х2.3)"},{"n":"1К/2С_7.7-6.1 (-2.3)","t":"1К/2С","dx":6.1,"dy":7.7,"flags":"Пара 2.3 -","a":0,"key":"1К/2С_7.7х6.1 (х2.3)"},{"n":"1К/2С_7.0-6.0 _2","t":"1К/2С","dx":6,"dy":7,"flags":"","a":35.2,"key":"1К/2С_7.0х6.0_2"},{"n":"1К/2С_6.5-6.0 _2","t":"1К/2С","dx":6,"dy":6.5,"flags":"","a":32.4,"key":"1К/2С_6.5х6.0_2"},{"n":"3С_7.5-7.1 (+2.3)","t":"3С","dx":9.42,"dy":7.5,"flags":"Пара 2.3 +|Торец","a":0,"key":"3С_7.5х7.1 (+2.3)"},{"n":"3С_7.7+1.5-6.6","t":"3С","dx":6.6,"dy":9.4,"flags":"","a":50.2,"key":"3С_7.7+1.5х6.6"},{"n":"1С_7.5-3.2 (+2.3)","t":"1С","dx":5.45,"dy":7.5,"flags":"Пара 2.3 +","a":0,"key":"1С_7.5х3.2 (+2.3)"},{"n":"1С_7.7-3.2 (+2.3)","t":"1С","dx":5.45,"dy":7.7,"flags":"Пара 2.3 +","a":0,"key":"1С_7.7х3.2 (+2.3)"},{"n":"3С_7.5+1.5-6.7","t":"3С","dx":8.81,"dy":10.97,"flags":"Торец","a":0,"key":"3С_7.5+1.5х6.7"},{"n":"3С_7.5+1.5-3.5 (+2.3)","t":"3С","dx":8.81,"dy":12.53,"flags":"Пара 2.7 +|Торец Н","a":0,"key":"3С_7.5+1.5х3.5 (+2.3)"},{"n":"3С_7.7-8.8","t":"3С","dx":8.8,"dy":7.7,"flags":"","a":57.3,"key":"3С_7.7х8.8"},{"n":"3С_7.5-8.8","t":"3С","dx":8.8,"dy":7.5,"flags":"","a":55.6,"key":"3С_7.5х8.8"},{"n":"3С_7.0-7.1 (+2.3)","t":"3С","dx":9.42,"dy":7,"flags":"Пара 2.3 +|Торец","a":0,"key":"3С_7.0х7.1 (+2.3)"},{"n":"3С_7.5+1.5-6.6","t":"3С","dx":6.6,"dy":9,"flags":"Торец 1.5 +","a":49.2,"key":"3С_7.5+1.5х6.6"},{"n":"3С_7.0+1.5-6.6","t":"3С","dx":6.6,"dy":8.5,"flags":"","a":46.1,"key":"3С_7.0+1.5х6.6"},{"n":"3С_7.7-6.3 (+2.3)","t":"3С","dx":9.42,"dy":7.7,"flags":"Пара 2.3 +|Торец","a":0,"key":"3С_7.7х6.3 (+2.3)"},{"n":"2С (О-тип)-2","t":"1К/2С","dx":6.83,"dy":7.5,"flags":"Пара 2.3 -","a":0,"key":"2С (Охтип)х2"},{"n":"2С (О-тип)","t":"1К/2С","dx":6.83,"dy":7.5,"flags":"Пара 2.3 -","a":0,"key":"2С (Охтип)"},{"n":"1С_7.5-2.9 (+2.3)","t":"1С","dx":5.15,"dy":7.5,"flags":"Пара 2.3 +","a":0,"key":"1С_7.5х2.9 (+2.3)"},{"n":"1С_7.7-2.9 (+2.3)","t":"1С","dx":5.15,"dy":7.7,"flags":"Пара 2.3 +","a":0,"key":"1С_7.7х2.9 (+2.3)"}];
+const MOPS = [{"num":"Т-тип 2Л,1ЛК","dx":18.11,"dy":9.32,"family":"МОП Л2_01"},{"num":"Н-тип 3Л,1ЛК_1","dx":17.75,"dy":7.21,"family":"МОП_Н_3Л_1ЛК_2К"},{"num":"Н-тип 4Л,1ЛК","dx":19.33,"dy":7.21,"family":"МОП_Н_3Л_1ЛК_2К"},{"num":"Т-тип 3Л,1ЛК","dx":15.66,"dy":8.88,"family":"МОП Т_3Л_1ЛК_1К"},{"num":"Т-тип 3Л,1ЛК","dx":15.66,"dy":10.41,"family":"МОП Т_3Л_1ЛК_1К"},{"num":"Т-тип 3Л,1ЛК","dx":18.83,"dy":9.85,"family":"Формы 26"},{"num":"Н-тип 3Л,1ЛК_3","dx":24.06,"dy":6.03,"family":"МОП_Н_3Л_1ЛК_2К"},{"num":"О-тип 3Л,1ЛК","dx":21,"dy":8.94,"family":"Формы 26"},{"num":"Н-тип 3Л,1ЛК_3","dx":33.22,"dy":6.03,"family":"МОП_Н_3Л_1ЛК_2К"},{"num":"Т-тип 3Л,1ЛК","dx":18.83,"dy":9.85,"family":"Формы 26"},{"num":"О-тип 3Л,1ЛК","dx":21,"dy":8.94,"family":"Формы 26"},{"num":"О-тип 3Л,1ЛК","dx":21,"dy":8.94,"family":"Формы 26"},{"num":"Н-тип 4Л,1ЛК","dx":26.39,"dy":7.21,"family":"МОП_Н_3Л_1ЛК_2К"},{"num":"Н-тип 4Л,1ЛК","dx":21.45,"dy":7.21,"family":"МОП_Н_3Л_1ЛК_2К"},{"num":"О-тип 3Л,1ЛК","dx":24.63,"dy":8.94,"family":"Формы 26"}];
+
+// Группируем МОПы по типу этажа
+const MOPS_BY_TYPE = { 'Т': [], 'Н': [], 'О': [] };
+MOPS.forEach(m => {
+  const c = m.num[0];
+  if (MOPS_BY_TYPE[c]) MOPS_BY_TYPE[c].push(m);
+});
+
+// Основной state
+const state = {
+  floorType: null,  // 'Т' | 'Н' | 'О'
+  mopIdx: null,     // индекс в MOPS
+  corridors: [],    // массив {name: '...', apts: [{i, ...apt data}]}
+  currentSlot: null // {corIdx, atIdx} для picker'а
+};
+
+function fmt(x, d=1) { return Number(x).toFixed(d); }
+function escHtml(s) { return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Шаг 1: типы этажей
+function renderFloorTypes() {
+  const box = document.getElementById('floorType');
+  const types = [
+    { t: 'Т', name: 'Т-тип · длинный коридор', desc: 'До 15 квартир на дом' },
+    { t: 'Н', name: 'Н-тип · 2 параллельных коридора', desc: 'До 9 квартир на коридор' },
+    { t: 'О', name: 'О-тип · 2 коридора от ЛЛУ', desc: 'До 15 квартир на дом' }
+  ];
+  box.innerHTML = types.map(x => 
+    `<button class="chip ${state.floorType === x.t ? 'on' : ''}" data-t="${x.t}">
+      <b>${x.t}-тип</b> · ${x.desc.split(' до ')[0]}
+      <span class="cnt">${MOPS_BY_TYPE[x.t].length}</span>
+    </button>`
+  ).join('');
+  box.querySelectorAll('.chip').forEach(b => b.onclick = () => {
+    state.floorType = b.dataset.t;
+    state.mopIdx = null;
+    state.corridors = [];
+    renderFloorTypes();
+    renderMops();
+    document.getElementById('stepMop').style.display = '';
+    document.getElementById('mainArea').style.display = 'none';
+  });
+}
+
+// Шаг 2: выбор МОП
+function renderMops() {
+  const box = document.getElementById('mopList');
+  const mops = MOPS_BY_TYPE[state.floorType] || [];
+  // Уникальные варианты (номер + размер округл. до 0.5)
+  const seen = {};
+  const uniq = [];
+  mops.forEach((m, i) => {
+    const key = m.num + '|' + Math.round(m.dx * 2) / 2 + '|' + Math.round(m.dy * 2) / 2;
+    if (!seen[key]) { seen[key] = true; uniq.push({ ...m, idx: MOPS.indexOf(m) }); }
+  });
+  
+  box.innerHTML = uniq.map(m => 
+    `<div class="mopcard ${state.mopIdx === m.idx ? 'on' : ''}" data-i="${m.idx}">
+      <div class="n">${escHtml(m.num)}</div>
+      <div class="s">${fmt(m.dx)} × ${fmt(m.dy)} м</div>
+    </div>`
+  ).join('');
+  box.querySelectorAll('.mopcard').forEach(c => c.onclick = () => {
+    state.mopIdx = parseInt(c.dataset.i);
+    setupCorridors();
+    renderMops();
+    document.getElementById('mainArea').style.display = '';
+    renderFloor();
+  });
+}
+
+// Настройка коридоров под тип
+function setupCorridors() {
+  const t = state.floorType;
+  if (t === 'Т') {
+    state.corridors = [
+      { name: 'Юг · слева от МОП', apts: [] },
+      { name: 'Юг · справа от МОП', apts: [] },
+      { name: 'Север · слева от МОП', apts: [] },
+      { name: 'Север · справа от МОП', apts: [] }
+    ];
+  } else if (t === 'Н') {
+    state.corridors = [
+      { name: 'Коридор 1 · юг', apts: [] },
+      { name: 'Коридор 1 · север', apts: [] },
+      { name: 'Коридор 2 · юг', apts: [] },
+      { name: 'Коридор 2 · север', apts: [] }
+    ];
+  } else if (t === 'О') {
+    state.corridors = [
+      { name: 'Влево от ЛЛУ · юг', apts: [] },
+      { name: 'Влево от ЛЛУ · север', apts: [] },
+      { name: 'Вправо от ЛЛУ · юг', apts: [] },
+      { name: 'Вправо от ЛЛУ · север', apts: [] }
+    ];
+  }
+}
+
+// Отображение этажа
+function renderFloor() {
+  const mop = MOPS[state.mopIdx];
+  const box = document.getElementById('corridors');
+  
+  box.innerHTML = state.corridors.map((cor, ci) => {
+    const empty = cor.apts.length === 0 ? ' empty' : '';
+    let cards = cor.apts.map((a, ai) => aptCardHtml(a, ci, ai)).join('');
+    return `<div class="corridor">
+      <div class="corridor-name">${escHtml(cor.name)}</div>
+      <div class="slots${empty}">
+        ${cards}
+        <button class="addBtn" data-ci="${ci}" title="Добавить квартиру">+</button>
+      </div>
+    </div>`;
+  }).join('');
+  
+  // Handlers
+  box.querySelectorAll('.addBtn').forEach(b => b.onclick = () => openPicker(parseInt(b.dataset.ci)));
+  box.querySelectorAll('.rm').forEach(b => b.onclick = (e) => {
+    e.stopPropagation();
+    const ci = parseInt(b.dataset.ci), ai = parseInt(b.dataset.ai);
+    state.corridors[ci].apts.splice(ai, 1);
+    renderFloor(); renderTEP();
+  });
+  
+  renderTEP();
+}
+
+// Карточка квартиры в коридоре
+function aptCardHtml(a, ci, ai) {
+  const flags = a.flags ? a.flags.split('|') : [];
+  const isTorc = flags.some(f => f.startsWith('Торец'));
+  const cls = ['aptCard'];
+  if (isTorc) cls.push('torc');
+  const badges = flags.map(f => {
+    let bc = '';
+    if (f.includes('+')) bc = 'pos';
+    else if (f.includes('-')) bc = 'neg';
+    if (f.startsWith('Торец')) bc = 'torc';
+    return `<span class="badge ${bc}">${escHtml(f)}</span>`;
+  }).join('');
+  const w = Math.max(a.dx, a.dy);
+  const d = Math.min(a.dx, a.dy);
+  return `<div class="${cls.join(' ')}">
+    <button class="rm" data-ci="${ci}" data-ai="${ai}">×</button>
+    <div class="n">${escHtml(a.n)}</div>
+    <div class="a">${a.a ? fmt(a.a) + ' м²' : '—'}</div>
+    <div class="w">${fmt(d)}×${fmt(w)} м</div>
+    <div class="badges">${badges}</div>
+  </div>`;
+}
+
+// Пикер квартир
+let pickerFilter = 'all';
+function openPicker(corIdx) {
+  state.currentSlot = { corIdx };
+  const cor = state.corridors[corIdx];
+  const box = document.getElementById('pickerList');
+  const sub = document.getElementById('pickerSub');
+  sub.textContent = 'В коридор: ' + cor.name;
+  
+  // Фильтры
+  const filterBox = document.getElementById('pickerFilter');
+  const filters = [
+    { k: 'all', name: 'Все' },
+    { k: '1С', name: '1С' },
+    { k: '1К/2С', name: '1К/2С' },
+    { k: '3С', name: '3С' },
+    { k: '4С', name: '4С' },
+    { k: 'torc', name: 'Только торцы' },
+    { k: 'pair+', name: 'Со стыковкой +' },
+    { k: 'pair-', name: 'Со стыковкой -' },
+    { k: 'plain', name: 'Прямоугольные' }
+  ];
+  filterBox.innerHTML = filters.map(f => 
+    `<button class="chip ${pickerFilter === f.k ? 'on' : ''}" data-f="${f.k}">${f.name}</button>`
+  ).join('');
+  filterBox.querySelectorAll('.chip').forEach(b => b.onclick = () => {
+    pickerFilter = b.dataset.f;
+    openPicker(corIdx);
+  });
+  
+  // Отобрать квартиры
+  let list = APTS.filter(a => {
+    if (pickerFilter === 'all') return true;
+    if (pickerFilter === 'torc') return (a.flags || '').includes('Торец');
+    if (pickerFilter === 'pair+') return (a.flags || '').includes('+') && !(a.flags || '').includes('Торец');
+    if (pickerFilter === 'pair-') return (a.flags || '').includes('-');
+    if (pickerFilter === 'plain') return !a.flags;
+    return a.t === pickerFilter;
+  });
+  
+  box.innerHTML = list.map(a => {
+    const flags = a.flags ? a.flags.split('|').map(f => 
+      `<span class="badge">${escHtml(f)}</span>`
+    ).join(' ') : '';
+    const w = Math.max(a.dx, a.dy);
+    const d = Math.min(a.dx, a.dy);
+    return `<div class="item" data-n="${escHtml(a.n)}">
+      <div class="n">${escHtml(a.n)}</div>
+      <div class="a">${a.a ? fmt(a.a) + ' м²' : 'площадь —'}</div>
+      <div class="w">${fmt(d)}×${fmt(w)} м · ${escHtml(a.t)}</div>
+      <div style="margin-top:4px;display:flex;gap:3px;flex-wrap:wrap;font-size:9px">${flags}</div>
+    </div>`;
+  }).join('');
+  
+  box.querySelectorAll('.item').forEach(el => el.onclick = () => {
+    const name = el.dataset.n;
+    const apt = APTS.find(a => a.n === name);
+    state.corridors[corIdx].apts.push({ ...apt });
+    document.getElementById('picker').classList.remove('open');
+    renderFloor();
+  });
+  
+  document.getElementById('picker').classList.add('open');
+}
+
+// ТЭП
+function renderTEP() {
+  const all = [];
+  state.corridors.forEach(c => c.apts.forEach(a => all.push(a)));
+  
+  document.getElementById('tepCount').textContent = all.length;
+  
+  const totalArea = all.reduce((s, a) => s + (a.a || 0), 0);
+  document.getElementById('tepAptArea').textContent = fmt(totalArea) + ' м²';
+  document.getElementById('tepAvgArea').textContent = all.length ? fmt(totalArea / all.length) + ' м²' : '— м²';
+  
+  // Ширина фасада — только квартиры "по фасаду" (не торцевые Н), их размер по фасаду
+  // Для Т/О — квартиры в одном коридоре — их dx суммарно
+  const facadeCor = state.corridors.slice(0, 2);
+  const totalW = facadeCor.reduce((s, c) => s + c.apts.reduce((s2, a) => s2 + Math.min(a.dx, a.dy), 0), 0);
+  document.getElementById('tepWidth').textContent = totalW > 0 ? fmt(totalW) + ' м' : '— м';
+  
+  // По типам
+  const byType = {};
+  all.forEach(a => byType[a.t] = (byType[a.t] || 0) + 1);
+  document.getElementById('tepByType').innerHTML = Object.entries(byType).map(([t, n]) => 
+    `<div class="row"><span class="k">${escHtml(t)}</span><span class="v">${n}</span></div>`
+  ).join('') || '<div style="font-size:12px;color:var(--muted);padding:4px 0">Ещё нет квартир</div>';
+  
+  // Стыковки
+  const pairPlus = all.filter(a => (a.flags || '').match(/Пара [\d.]+ \+/)).length;
+  const pairMinus = all.filter(a => (a.flags || '').match(/Пара [\d.]+ -/)).length;
+  const pairs = Math.min(pairPlus, pairMinus);
+  const unpaired = Math.abs(pairPlus - pairMinus);
+  document.getElementById('tepPairs').textContent = pairs;
+  document.getElementById('tepUnpaired').textContent = unpaired;
+  
+  const warn = document.getElementById('tepWarn');
+  if (unpaired > 0) {
+    warn.textContent = 'Есть непарные +/- (' + unpaired + '). Стыковка неполная.';
+    warn.classList.remove('hidden');
+  } else {
+    warn.classList.add('hidden');
+  }
+}
+
+renderFloorTypes();
+</script>
+</body>
+</html>
