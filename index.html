@@ -231,6 +231,10 @@
     <h2 id="mName"></h2>
     <div class="modalarea" id="mArea"></div>
     <dl class="modalgrid" id="mGrid"></dl>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap">
+      <button id="mShare" style="border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>Скопировать ссылку</button>
+      <span id="mShareOk" style="align-self:center;font-size:12px;color:var(--accent);display:none">Ссылка скопирована ✓</span>
+    </div>
   </div>
 </div>
 
@@ -270,6 +274,48 @@ document.addEventListener('keydown', e => {
     document.getElementById('modal').classList.remove('open');
   }
 });
+
+// === URL-фильтры ===
+function readURL() {
+  const p = new URLSearchParams(location.search);
+  const s = {};
+  if (p.get('t')) s.type = p.get('t');
+  if (p.get('d')) s.d = parseFloat(p.get('d'));
+  if (p.get('w')) s.w = parseFloat(p.get('w'));
+  if (p.get('c')) s.c = p.get('c');
+  if (p.get('eb')) s.eb = parseFloat(p.get('eb'));
+  if (p.get('v')) s.v = p.get('v');
+  if (p.get('aMin')) s.aMin = parseFloat(p.get('aMin'));
+  if (p.get('aMax')) s.aMax = parseFloat(p.get('aMax'));
+  if (p.get('view')) s.view = p.get('view');
+  return s;
+}
+function writeURL() {
+  const p = new URLSearchParams();
+  if (state.type) p.set('t', state.type);
+  if (state.d !== null) p.set('d', state.d);
+  if (state.w !== null) p.set('w', state.w);
+  if (state.c !== null) p.set('c', state.c);
+  if (state.eb !== null) p.set('eb', state.eb);
+  if (state.v !== null) p.set('v', state.v);
+  if (state.aMin > A_MIN) p.set('aMin', state.aMin);
+  if (state.aMax < A_MAX) p.set('aMax', state.aMax);
+  if (state.view !== 'c3') p.set('view', state.view);
+  const qs = p.toString();
+  const url = location.pathname + (qs ? '?' + qs : '');
+  history.replaceState(null, '', url);
+}
+function shareApt(a) {
+  const p = new URLSearchParams();
+  p.set('t', a.t);
+  p.set('d', a.d);
+  p.set('w', a.w);
+  p.set('eb', a.eb);
+  if (a.c) p.set('c', a.c);
+  if (a.v) p.set('v', a.v);
+  p.set('open', a.n);
+  return location.origin + location.pathname + '?' + p.toString();
+}
 
 const state = { type: null, d: null, w: null, c: null, eb: null, v: null, aMin: 0, aMax: 100, view: 'c3', mode: 'view' };
 // === Синхронизация меток через npoint.io ===
@@ -543,6 +589,19 @@ function escHtml(s) { return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'
 
 function showModal(a) {
   const mImg = document.getElementById('mImg'); mImg.style.display=''; mImg.src = imgPath(a.n);
+  const shareBtn = document.getElementById('mShare');
+  const shareOk = document.getElementById('mShareOk');
+  shareOk.style.display = 'none';
+  shareBtn.onclick = async () => {
+    const url = shareApt(a);
+    try {
+      await navigator.clipboard.writeText(url);
+      shareOk.style.display = '';
+      setTimeout(() => { shareOk.style.display = 'none'; }, 2000);
+    } catch(e) {
+      prompt('Скопируйте ссылку:', url);
+    }
+  };
   document.getElementById('mName').textContent = a.n;
   document.getElementById('mArea').innerHTML = fmt(a.a) + '<span>м²</span>';
   const parts = [
@@ -603,8 +662,24 @@ document.getElementById('reset').onclick = () => {
   updRange();
 };
 
+// Применить URL-фильтры при загрузке
+const urlState = readURL();
+Object.assign(state, urlState);
+if (state.aMin < A_MIN || isNaN(state.aMin)) state.aMin = A_MIN;
+if (state.aMax > A_MAX || isNaN(state.aMax)) state.aMax = A_MAX;
+aMin.value = state.aMin; aMax.value = state.aMax;
+if (state.view && state.view !== 'c3') {
+  document.querySelectorAll('#viewtabs button').forEach(b => b.classList.toggle('active', b.dataset.v === state.view));
+}
 updRange();
 render();
+
+// Если ?open=... открыть модалку для этой квартиры
+const openParam = new URLSearchParams(location.search).get('open');
+if (openParam) {
+  const found = APTS.find(a => a.n === openParam);
+  if (found) setTimeout(() => showModal(found), 300);
+}
 </script>
 </body>
 </html>
