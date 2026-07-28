@@ -155,7 +155,7 @@
       </div>
       <div>
         <h1>Каталог квартир</h1>
-        <div class="subt" id="subt"></div>
+        <div class="subt" id="subt"></div><div id="syncBadge" style="font-size:11px;margin-top:4px;color:var(--muted)">● Инициализация...</div>
       </div>
     </div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -272,11 +272,90 @@ document.addEventListener('keydown', e => {
 });
 
 const state = { type: null, d: null, w: null, c: null, eb: null, v: null, aMin: 0, aMax: 100, view: 'c3', mode: 'view' };
+// === Синхронизация меток через npoint.io ===
+const BIN_URL = 'https://api.npoint.io/4454495a56840c7100fd'';
 const STORAGE_KEY = 'apt-catalog-meta-v1';
+
 let META = {};
+let saveTimer = null;
+let syncStatus = 'idle'; // idle | loading | saving | error
+
+// Локальный кэш для быстрого старта
 try { META = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { META = {}; }
+
+function updSyncBadge() {
+  const b = document.getElementById('syncBadge');
+  if (!b) return;
+  const map = {
+    idle: {t: 'Синхронизировано', c: 'var(--muted)'},
+    loading: {t: 'Загрузка...', c: 'var(--accent)'},
+    saving: {t: 'Сохранение...', c: 'var(--accent)'},
+    error: {t: 'Ошибка синхронизации', c: '#bd3b34'}
+  };
+  const s = map[syncStatus] || map.idle;
+  b.textContent = '● ' + s.t;
+  b.style.color = s.c;
+}
+
+async function loadCloudMeta() {
+  syncStatus = 'loading'; updSyncBadge();
+  try {
+    const r = await fetch(BIN_URL + '?t=' + Date.now(), { cache: 'no-store' });
+    if (r.ok) {
+      const cloud = await r.json();
+      META = cloud || {};
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(META));
+      render();
+      syncStatus = 'idle';
+    } else {
+      syncStatus = 'error';
+    }
+  } catch (e) {
+    console.warn('Load cloud failed', e);
+    syncStatus = 'error';
+  }
+  updSyncBadge();
+}
+
 function metaFor(n) { if (!META[n]) META[n] = { size: null, flag: null, exc: false, note: '' }; return META[n]; }
-function saveMeta() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(META)); } catch(e){} }
+
+function saveMeta() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(META)); } catch(e){}
+  scheduleCloudSave();
+}
+
+function scheduleCloudSave() {
+  if (saveTimer) clearTimeout(saveTimer);
+  syncStatus = 'saving'; updSyncBadge();
+  saveTimer = setTimeout(pushToCloud, 1500);
+}
+
+async function pushToCloud() {
+  try {
+    const r = await fetch(BIN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(META)
+    });
+    if (r.ok) {
+      syncStatus = 'idle';
+    } else {
+      syncStatus = 'error';
+    }
+  } catch (e) {
+    console.warn('Push failed', e);
+    syncStatus = 'error';
+  }
+  updSyncBadge();
+}
+
+// Загрузить облачные данные при старте
+setTimeout(loadCloudMeta, 500);
+
+// Каждые 30 секунд обновлять — увидим изменения от других пользователей
+setInterval(() => {
+  if (syncStatus === 'idle') loadCloudMeta();
+}, 30000);
 const A_MIN = Math.floor(Math.min(...APTS.map(a=>a.a)));
 const A_MAX = Math.ceil(Math.max(...APTS.map(a=>a.a)));
 state.aMin = A_MIN; state.aMax = A_MAX;
