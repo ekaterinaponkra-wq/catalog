@@ -415,7 +415,17 @@ function render() {
   chipsBlock('fVar', vars, state.v, v => '_'+v, v => { state.v = v; render(); });
 
   // Result
-  const res = APTS.filter(passes);
+  const typeOrder = { '1С': 1, '1К/2С': 2, '3С': 3, '4С': 4 };
+  const res = APTS.filter(passes).sort((a, b) => {
+    const ta = typeOrder[a.t] || 99;
+    const tb = typeOrder[b.t] || 99;
+    if (ta !== tb) return ta - tb;
+    if (a.d !== b.d) return a.d - b.d;
+    if (a.eb !== b.eb) return a.eb - b.eb;
+    if (a.w !== b.w) return a.w - b.w;
+    if (a.c !== b.c) return a.c.localeCompare(b.c);
+    return (a.v || '').localeCompare(b.v || '');
+  });
   document.getElementById('count').innerHTML = 'Найдено: <b>' + res.length + '</b> из ' + APTS.length;
   document.getElementById('subt').textContent = APTS.length + ' квартир · глубина 3.5–7.7 м · площадь ' + A_MIN + '–' + A_MAX + ' м²';
 
